@@ -1,3 +1,5 @@
+const supabase = require('./supabaseClient');
+
 function shuffle(array) {
   let currentIndex = array.length, randomIndex;
   while (currentIndex !== 0) {
@@ -41,15 +43,35 @@ class GameRoom {
     this.auctionState = { currentBid: 0, highestBidder: null, biddingActive: false, startingBidder: 1, currentTurn: 1, firstPassBy: null };
   }
 
+  async saveMatchToDatabase() {
+    if (this.matchSaved) return;
+    this.matchSaved = true;
+    try {
+      await supabase.from('matches').insert([{
+        room_code: this.roomCode,
+        player1_name: this.player1.name,
+        player2_name: this.player2.name,
+        player1_squad: JSON.stringify(this.player1.squad),
+        player2_squad: JSON.stringify(this.player2.squad),
+        created_at: new Date()
+      }]);
+      console.log('Match saved to Supabase successfully!');
+    } catch (e) {
+      console.error('Failed to save match to Supabase:', e);
+    }
+  }
+
   checkEndCondition() {
     const p1Full = this.player1.squad.length >= this.settings.squadSize;
     const p2Full = this.player2.squad.length >= this.settings.squadSize;
     if (p1Full && p2Full) {
       this.gamePhase = 'RESULT';
+      this.saveMatchToDatabase();
       return true;
     }
     if (this.availablePlayers.length === 0 && !this.currentPlayer) {
       this.gamePhase = 'RESULT';
+      this.saveMatchToDatabase();
       return true;
     }
     
@@ -59,6 +81,7 @@ class GameRoom {
     
     if (this.player1.budget < actualMin && this.player2.budget < actualMin) {
       this.gamePhase = 'RESULT';
+      this.saveMatchToDatabase();
       return true;
     }
     return false;
