@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-export const socket = io('http://localhost:5000');
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+export const socket = io(BACKEND_URL);
 
 export function useDraftEngine() {
   const [gamePhase, setGamePhase] = useState('START'); // START, WAITING_FOR_OPPONENT, DRAFTING, RESULT
