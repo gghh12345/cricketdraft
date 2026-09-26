@@ -2,6 +2,7 @@ services:
   - type: web
     name: cricket-draft-backend
     env: node
+    plan: free
     rootDir: cricket-draft-backend
     buildCommand: npm install
     startCommand: node server.js
