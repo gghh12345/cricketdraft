@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: cricket-draft-backend
+    env: node
+    rootDir: cricket-draft-backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
