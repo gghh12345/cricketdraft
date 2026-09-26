@@ -1,10 +1,16 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 export default function PlayerCard({ player }) {
   if (!player) return null;
 
   return (
-    <div className="relative w-64 mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-game-blue transform transition-all animate-pop-in">
+    <motion.div 
+      initial={{ scale: 0.8, opacity: 0, y: 50 }}
+      animate={{ scale: 1, opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      className="relative w-64 mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-game-blue transform transition-all hover:scale-105"
+    >
 
       <div className="h-48 bg-gray-100 flex justify-center items-end relative overflow-hidden">
         {/* Placeholder styling since images might not be transparent cutouts */}
@@ -29,6 +35,6 @@ export default function PlayerCard({ player }) {
           <span className="text-sm text-game-gold">#{player.iccRanking || player.id}</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

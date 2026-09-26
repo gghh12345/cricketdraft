@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PlayerColumn({ 
   player, 
@@ -167,24 +168,32 @@ export default function PlayerColumn({
           <span>{player.squad.length} / {maxSquad}</span>
         </div>
         <ul className="space-y-2">
-          {Array.from({ length: maxSquad }).map((_, i) => {
-            const member = player.squad[i];
-            return (
-              <li key={i} className={`flex justify-between items-center p-3 rounded-lg ${member ? 'bg-gray-50 border border-gray-100' : 'bg-gray-50 border border-dashed border-gray-200'}`}>
-                <div className="flex items-center space-x-3">
-                  <span className="text-gray-400 font-bold text-sm w-4">{i + 1}.</span>
-                  {member ? (
-                    <span className="font-semibold text-gray-800">{member.name}</span>
-                  ) : (
-                    <span className="text-gray-400 italic text-sm">Empty Slot</span>
+          <AnimatePresence>
+            {Array.from({ length: maxSquad }).map((_, i) => {
+              const member = player.squad[i];
+              return (
+                <motion.li 
+                  key={member ? member.id : `empty-${i}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  className={`flex justify-between items-center p-3 rounded-lg ${member ? 'bg-gray-50 border border-gray-100 shadow-sm' : 'bg-gray-50 border border-dashed border-gray-200'}`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-gray-400 font-bold text-sm w-4">{i + 1}.</span>
+                    {member ? (
+                      <span className="font-semibold text-gray-800">{member.name}</span>
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">Empty Slot</span>
+                    )}
+                  </div>
+                  {member && (
+                    <span className="text-xs font-bold text-game-green bg-green-50 px-2 py-1 rounded">₹{member.price}</span>
                   )}
-                </div>
-                {member && (
-                  <span className="text-xs font-bold text-game-green bg-green-50 px-2 py-1 rounded">₹{member.price}</span>
-                )}
-              </li>
-            );
-          })}
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
         </ul>
       </div>
     </div>
