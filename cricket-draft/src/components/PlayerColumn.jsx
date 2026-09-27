@@ -20,8 +20,9 @@ export default function PlayerColumn({
   const isFull = player.squad.length >= maxSquad;
   const isAuction = settings.gameMode === 'AUCTION';
   const isMe = playerNum === engine.myPlayerNum;
-  const isMyTurn = isAuction && auctionState.currentTurn === playerNum && isMe;
-  const isTheirTurn = isAuction && auctionState.currentTurn === playerNum && !isMe;
+  // In QUICK mode, we check currentTurn. In AUCTION mode, anyone can bid if it's their column (isMe).
+  const isMyTurn = isAuction ? isMe : (auctionState.currentTurn === playerNum && isMe);
+  const isTheirTurn = isAuction ? !isMe : (auctionState.currentTurn === playerNum && !isMe);
   
   const minBid = currentPlayer ? (auctionState.biddingActive ? auctionState.currentBid + 1 : 0) : 0;
   
@@ -31,11 +32,11 @@ export default function PlayerColumn({
     if (currentPlayer) {
       setCustomBid(minBid);
     }
-  }, [currentPlayer, minBid]);
+  }, [currentPlayer?.id, auctionState.biddingActive, auctionState.currentBid]);
 
   const handleDraft = () => {
-    if (isFull || player.budget < currentPlayer.price) return;
-    draftPlayer(playerNum, currentPlayer.price);
+    if (isFull || player.budget < (currentPlayer?.price || 0)) return;
+    draftPlayer(playerNum, (currentPlayer?.price || 0));
   };
 
   const handleBidSubmit = () => {
@@ -43,6 +44,14 @@ export default function PlayerColumn({
     if (amount >= minBid && amount <= player.budget) {
       placeBid(playerNum, amount);
     }
+  };
+
+  const addBidIncrement = (increment) => {
+    setCustomBid(prev => {
+      const current = Number(prev) || minBid;
+      const next = current + increment;
+      return next <= player.budget ? next : player.budget;
+    });
   };
 
   const handlePass = () => {
@@ -69,11 +78,19 @@ export default function PlayerColumn({
         <div className="mb-6">
           {isAuction ? (
             auctionState.highestBidder === playerNum ? (
-              <div className="w-full py-4 px-4 rounded-xl font-bold text-lg text-black bg-game-gold text-center cursor-default shadow-sm border border-yellow-500">
+              <div className="w-full py-4 px-4 rounded-xl font-bold text-lg text-black bg-game-gold text-center cursor-default shadow-sm border border-yellow-500 animate-pulse">
                 LEADING BID (₹{auctionState.currentBid})
               </div>
-            ) : isMyTurn ? (
+            ) : isMe && auctionState.currentTurn === playerNum ? (
               <div className="space-y-3">
+                {settings.timerEnabled && auctionState.timeLeft !== undefined && (
+                  <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-1000 ${auctionState.timeLeft <= 5 ? 'bg-game-red animate-pulse' : 'bg-game-blue'}`}
+                      style={{ width: `${(auctionState.timeLeft / 20) * 100}%` }}
+                    />
+                  </div>
+                )}
                 {isFull ? (
                   <div className="w-full py-3 px-4 rounded-xl font-bold text-lg text-white bg-gray-400 text-center cursor-not-allowed shadow-sm">
                     SQUAD FULL
@@ -83,25 +100,58 @@ export default function PlayerColumn({
                     NOT ENOUGH BUDGET
                   </div>
                 ) : (
-                  <div className="flex space-x-2">
-                    <div className="relative w-1/2">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-gray-500">₹</span>
-                      <input
-                        type="number"
-                        min={minBid}
-                        max={player.budget}
-                        value={customBid}
-                        onChange={(e) => setCustomBid(e.target.value)}
-                        className="w-full pl-7 pr-2 py-3 border-2 border-game-blue rounded-xl text-lg font-black focus:outline-none focus:ring-2 focus:ring-game-blue bg-white"
-                      />
+                  <div>
+                    <div className="flex space-x-2 mb-2">
+                      <div className="relative w-1/2">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-gray-500">₹</span>
+                        <input
+                          type="number"
+                          min={minBid}
+                          max={player.budget}
+                          value={customBid}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleBidSubmit();
+                            }
+                          }}
+                          onChange={(e) => setCustomBid(e.target.value)}
+                          className="w-full pl-7 pr-2 py-3 border-2 border-game-blue rounded-xl text-lg font-black focus:outline-none focus:ring-2 focus:ring-game-blue bg-white"
+                        />
+                      </div>
+                      <button
+                        onClick={handleBidSubmit}
+                        disabled={Number(customBid) > player.budget || Number(customBid) < minBid}
+                        className="w-1/2 py-3 px-2 rounded-xl font-bold text-lg text-white bg-game-blue hover:bg-blue-800 shadow-sm transition-transform active:scale-95 disabled:opacity-50 disabled:bg-gray-400"
+                      >
+                        BID
+                      </button>
                     </div>
-                    <button
-                      onClick={handleBidSubmit}
-                      disabled={Number(customBid) > player.budget || Number(customBid) < minBid}
-                      className="w-1/2 py-3 px-2 rounded-xl font-bold text-lg text-white bg-game-blue hover:bg-blue-800 shadow-sm transition-transform active:scale-95 disabled:opacity-50 disabled:bg-gray-400"
-                    >
-                      BID
-                    </button>
+
+                    {/* Quick increment buttons */}
+                    <div className="flex space-x-1.5 mb-1">
+                      <button
+                        type="button"
+                        onClick={() => addBidIncrement(1)}
+                        className="flex-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-game-blue rounded-lg text-xs font-bold transition-colors"
+                      >
+                        +₹1
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addBidIncrement(2)}
+                        className="flex-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-game-blue rounded-lg text-xs font-bold transition-colors"
+                      >
+                        +₹2
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => addBidIncrement(5)}
+                        className="flex-1 py-1.5 bg-blue-50 hover:bg-blue-100 text-game-blue rounded-lg text-xs font-bold transition-colors"
+                      >
+                        +₹5
+                      </button>
+                    </div>
                   </div>
                 )}
                 
@@ -112,13 +162,13 @@ export default function PlayerColumn({
                   {auctionState.biddingActive ? 'PASS (Let opponent win)' : 'PASS PLAYER'}
                 </button>
               </div>
-            ) : isTheirTurn ? (
-              <div className="w-full py-4 px-4 rounded-xl font-bold text-lg text-gray-500 bg-gray-100 text-center cursor-default border-2 border-dashed border-gray-300">
-                THEY ARE BIDDING...
-              </div>
             ) : isMe ? (
               <div className="w-full py-4 px-4 rounded-xl font-bold text-lg text-gray-500 bg-gray-100 text-center cursor-default border-2 border-dashed border-gray-300">
                 WAITING FOR OPPONENT...
+              </div>
+            ) : auctionState.currentTurn === playerNum ? (
+              <div className="w-full py-4 px-4 rounded-xl font-bold text-lg text-gray-500 bg-gray-100 text-center cursor-default border-2 border-dashed border-gray-300">
+                THEY ARE THINKING...
               </div>
             ) : null
           ) : (
@@ -188,7 +238,7 @@ export default function PlayerColumn({
                     )}
                   </div>
                   {member && (
-                    <span className="text-xs font-bold text-game-green bg-green-50 px-2 py-1 rounded">₹{member.price}</span>
+                    <span className="text-xs font-bold text-game-green bg-green-50 px-2 py-1 rounded">₹{member.purchasePrice ?? member.price}</span>
                   )}
                 </motion.li>
               );

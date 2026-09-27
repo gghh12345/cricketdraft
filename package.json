@@ -1,0 +1,14 @@
+{
+  "name": "cricket-draft-root",
+  "version": "1.0.0",
+  "description": "Root package for running both frontend and backend",
+  "scripts": {
+    "install:all": "npm install --prefix cricket-draft && npm install --prefix cricket-draft-backend",
+    "build": "npm run build --prefix cricket-draft",
+    "start": "node cricket-draft-backend/server.js",
+    "dev": "npx concurrently \"npm run dev --prefix cricket-draft\" \"npm start --prefix cricket-draft-backend\""
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
